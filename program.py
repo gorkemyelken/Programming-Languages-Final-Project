@@ -200,7 +200,7 @@ class Program:
                                 if temp_tokenlist[1].lexeme == flowsignal.ftarget:
                                     index = index + 1
                                     if index < len(line_numbers):
-                                        next_line_number = line_numbers[index]  # Statement after the NEXT
+                                        next_line_number = line_numbers[index]
                                         self.set_next_line_number(next_line_number)
                                         break
 
