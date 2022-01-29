@@ -21,7 +21,6 @@ class BASICToken:
         GREATER         = 21  # '>'
         LESSER          = 22  # '<'
         STEP            = 23  # STEP keyword
-        INPUT           = 24  # INPUT keyword
         RETURN          = 25  # RETURN keyword
         NOTEQUAL        = 26  # '<>'
         UNSIGNEDFLOAT   = 27  # Floating point number
@@ -52,7 +51,7 @@ class BASICToken:
         'FOR', 'NEXT', 'IF', 'THEN', 'ELSE', 'ASSIGNOP',
         'LEFTPAREN', 'RIGHTPAREN', 'PLUS', 'MINUS', 'TIMES',
         'DIVIDE', 'NEWLINE', 'UNSIGNEDINT', 'NAME', 'EXIT',
-        'GREATER', 'LESSER', 'STEP', 'INPUT', 'RETURN', 
+        'GREATER', 'LESSER', 'STEP', 'RETURN', 
         'NOTEQUAL', 'TO', 'UNSIGNEDFLOAT', 'STRING', 'NEW', 'EQUAL',
         'COMMA', 'STOP', 'COLON','ON','DATA', 'INT','MODULO',
         'VAL', 'LEN','AND', 'OR', 'NOT', 'HASH', 'TAB', 'SEMICOLON',
@@ -70,7 +69,7 @@ class BASICToken:
                     'FOR': FOR, 'RUN': RUN, 'NEXT': NEXT,
                     'IF': IF, 'THEN': THEN, 'ELSE': ELSE,
                     'EXIT': EXIT, 'STEP': STEP,
-                    'ON':ON,'INPUT': INPUT, 'RETURN': RETURN,
+                    'ON':ON, 'RETURN': RETURN,
                     'NEW': NEW,'STOP': STOP, 'TO': TO,
                     'DATA': DATA, 'INT': INT,'STR$': STR,'MOD': MODULO,
                     'VAL': VAL, 'LEN': LEN,
