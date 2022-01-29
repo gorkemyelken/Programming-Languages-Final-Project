@@ -1222,53 +1222,10 @@ class BASICParser:
 
         return FlowSignal(ftype=FlowSignal.LOOP_REPEAT,floop_var=loop_variable)
 
-    def __ongosubstmt(self):
-        """Process the ON-GOSUB statement
-
-        :return: A FlowSignal indicating the subroutine line number
-        if the condition is true, None otherwise
-
-        """
-
-        self.__advance()  # Advance past ON token
-        self.__expr()
-
-        # Save result of expression
-        saveval = self.__operand_stack.pop()
-
-        if self.__token.category == Token.GOTO:
-            self.__consume(Token.GOTO)
-            branchtype = 1
-        else:
-            self.__consume(Token.GOSUB)
-            branchtype = 2
-
-        branch_values = []
-        # Acquire the comma separated values
-        if not self.__tokenindex >= len(self.__tokenlist):
-            self.__expr()
-            branch_values.append(self.__operand_stack.pop())
-
-            while self.__token.category == Token.COMMA:
-                self.__advance()  # Advance past comma
-                self.__expr()
-                branch_values.append(self.__operand_stack.pop())
-
-        if saveval < 1 or saveval > len(branch_values) or len(branch_values) == 0:
-            return None
-        elif branchtype == 1:
-            return FlowSignal(ftarget=branch_values[saveval-1])
-        else:
-            return FlowSignal(ftarget=branch_values[saveval-1],
-                              ftype=FlowSignal.GOSUB)
+    
 
     def __relexpr(self):
-        """Parses a relational expression
-        """
         self.__expr()
-
-        # Since BASIC uses same operator for both
-        # assignment and equality, we need to check for this
         if self.__token.category == Token.ASSIGNOP:
             self.__token.category = Token.EQUAL
 
@@ -1292,15 +1249,7 @@ class BASICParser:
             elif savecat == Token.GREATER:
                 self.__operand_stack.append(left > right)  # Push True or False
 
-            elif savecat == Token.LESSEQUAL:
-                self.__operand_stack.append(left <= right)  # Push True or False
-
-            elif savecat == Token.GREATEQUAL:
-                self.__operand_stack.append(left >= right)  # Push True or False
-
     def __logexpr(self):
-        """Parses a logical expression
-        """
         self.__notexpr()
 
         while self.__token.category in [Token.OR, Token.AND]:
@@ -1318,8 +1267,6 @@ class BASICParser:
                 self.__operand_stack.append(left and right)  # Push True or False
 
     def __notexpr(self):
-        """Parses a logical not expression
-        """
         if self.__token.category == Token.NOT:
             self.__advance()
             self.__relexpr()
@@ -1329,134 +1276,7 @@ class BASICParser:
             self.__relexpr()
 
     def __evaluate_function(self, category):
-        """Evaluate the function in the statement
-        and return the result.
-
-        :return: The result of the function
-
-        """
-
-        self.__advance()  # Advance past function name
-
-        # Process arguments according to function
-        if category == Token.RND:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            arg = self.__operand_stack.pop()
-
-            self.__consume(Token.RIGHTPAREN)
-            # MSBASIC basic reseeds with negative values
-            # as arg to RND... not sure if it returned anything
-            # Zero returns the last value again (not implemented)
-            # Any positive value returns random fload btw 0 and 1
-            if arg < 0:
-                random.seed(arg)
-
-            return random.random()
-
-        if category == Token.PI:
-            return math.pi
-
-        if category == Token.RNDINT:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            lo = self.__operand_stack.pop()
-
-            self.__consume(Token.COMMA)
-
-            self.__expr()
-            hi = self.__operand_stack.pop()
-
-            self.__consume(Token.RIGHTPAREN)
-
-            try:
-                return random.randint(lo, hi)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to RNDINT in line " +
-                                 str(self.__line_number))
-
-        if category == Token.MAX:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            value_list = [self.__operand_stack.pop()]
-
-            while self.__token.category == Token.COMMA:
-                self.__advance() # Advance past comma
-                self.__expr()
-                value_list.append(self.__operand_stack.pop())
-
-            self.__consume(Token.RIGHTPAREN)
-
-            try:
-                return max(*value_list)
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to MAX in line " +
-                                 str(self.__line_number))
-
-        if category == Token.MIN:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            value_list = [self.__operand_stack.pop()]
-
-            while self.__token.category == Token.COMMA:
-                self.__advance() # Advance past comma
-                self.__expr()
-                value_list.append(self.__operand_stack.pop())
-
-            self.__consume(Token.RIGHTPAREN)
-
-            try:
-                return min(*value_list)
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to MIN in line " +
-                                 str(self.__line_number))
-
-        if category == Token.POW:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            base = self.__operand_stack.pop()
-
-            self.__consume(Token.COMMA)
-
-            self.__expr()
-            exponent = self.__operand_stack.pop()
-
-            self.__consume(Token.RIGHTPAREN)
-
-            try:
-                return math.pow(base, exponent)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to POW in line " +
-                                 str(self.__line_number))
-
-        if category == Token.TERNARY:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__logexpr()
-            condition = self.__operand_stack.pop()
-
-            self.__consume(Token.COMMA)
-
-            self.__expr()
-            whentrue = self.__operand_stack.pop()
-
-            self.__consume(Token.COMMA)
-
-            self.__expr()
-            whenfalse = self.__operand_stack.pop()
-
-            self.__consume(Token.RIGHTPAREN)
-
-            return whentrue if condition else whenfalse
+        self.__advance()  
 
         if category == Token.LEFT:
             self.__consume(Token.LEFTPAREN)
@@ -1471,102 +1291,20 @@ class BASICParser:
 
             self.__consume(Token.RIGHTPAREN)
 
-            try:
-                return instring[:chars]
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to LEFT$ in line " +
-                                 str(self.__line_number))
+            return instring[:chars]
 
         if category == Token.RIGHT:
             self.__consume(Token.LEFTPAREN)
-
             self.__expr()
             instring = self.__operand_stack.pop()
-
             self.__consume(Token.COMMA)
-
             self.__expr()
             chars = self.__operand_stack.pop()
-
             self.__consume(Token.RIGHTPAREN)
 
-            try:
-                return instring[-chars:]
+            return instring[-chars:]
 
-            except TypeError:
-                raise TypeError("Invalid type supplied to RIGHT$ in line " +
-                                 str(self.__line_number))
-
-        if category == Token.MID:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            instring = self.__operand_stack.pop()
-
-            self.__consume(Token.COMMA)
-
-            self.__expr()
-            # Older basic dialets were always 1 based
-            start = self.__operand_stack.pop() - 1
-
-            if self.__token.category == Token.COMMA:
-                self.__advance() # Advance past comma
-                self.__expr()
-                chars = self.__operand_stack.pop()
-            else:
-                chars = None
-
-            self.__consume(Token.RIGHTPAREN)
-
-            try:
-                if chars:
-                    return instring[start:start+chars]
-                else:
-                    return instring[start:]
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to MID$ in line " +
-                                 str(self.__line_number))
-
-        if category == Token.INSTR:
-            self.__consume(Token.LEFTPAREN)
-
-            self.__expr()
-            hackstackstring = self.__operand_stack.pop()
-            if not isinstance(hackstackstring, str):
-                raise TypeError("Invalid type supplied to INSTR in line " +
-                                 str(self.__line_number))
-
-            self.__consume(Token.COMMA)
-
-            self.__expr()
-            needlestring = self.__operand_stack.pop()
-
-            start = end = None
-            if self.__token.category == Token.COMMA:
-                self.__advance() # Advance past comma
-                self.__expr()
-                # Older basic dialets were always 1 based
-                start = self.__operand_stack.pop() -1
-
-                if self.__token.category == Token.COMMA:
-                    self.__advance() # Advance past comma
-                    self.__expr()
-                    end = self.__operand_stack.pop() -1
-
-            self.__consume(Token.RIGHTPAREN)
-
-            try:
-                # Older basis dialets are 1 based, so the return value
-                # here needs to be incremented by one.  ALSO
-                # this moves the -1 not found value to 0
-                # which indicated not found in most dialects
-                return hackstackstring.find(needlestring, start, end) + 1
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to INSTR in line " +
-                                 str(self.__line_number))
+        
 
         self.__consume(Token.LEFTPAREN)
 
@@ -1575,109 +1313,9 @@ class BASICParser:
 
         self.__consume(Token.RIGHTPAREN)
 
-        if category == Token.SQR:
-            try:
-                return math.sqrt(value)
+        if category == Token.INT:
 
-            except ValueError:
-                raise ValueError("Invalid value supplied to SQR in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.ABS:
-            try:
-                return abs(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to ABS in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.ATN:
-            try:
-                return math.atan(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to ATN in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.COS:
-            try:
-                return math.cos(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to COS in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.EXP:
-            try:
-                return math.exp(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to EXP in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.INT:
-            try:
-                return math.floor(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to INT in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.ROUND:
-            try:
-                return round(value)
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to LEN in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.LOG:
-            try:
-                return math.log(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to LOG in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.SIN:
-            try:
-                return math.sin(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to SIN in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.TAN:
-            try:
-                return math.tan(value)
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to TAN in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.CHR:
-            try:
-                return chr(value)
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to CHR$ in line " +
-                                 str(self.__line_number))
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to CHR$ in line " +
-                                 str(self.__line_number))
-
-        elif category == Token.ASC:
-            try:
-                return ord(value)
-
-            except TypeError:
-                raise TypeError("Invalid type supplied to ASC in line " +
-                                 str(self.__line_number))
-
-            except ValueError:
-                raise ValueError("Invalid value supplied to ASC in line " +
-                                 str(self.__line_number))
+            return math.floor(value)
 
         elif category == Token.STR:
             return str(value)

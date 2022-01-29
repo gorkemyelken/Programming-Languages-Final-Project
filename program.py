@@ -5,11 +5,9 @@ from lexer import Lexer
 
 
 class BASICData:
-
     def __init__(self):
         self.__datastmts = {}
         self.__next_data = 0
-
 
     def delete(self):
         self.__datastmts.clear()
@@ -20,27 +18,18 @@ class BASICData:
             del self.__datastmts[line_number]
 
     def addData(self,line_number,tokenlist):
-        try:
-            self.__datastmts[line_number] = tokenlist
-
-        except TypeError as err:
-            raise TypeError("Invalid line number: " + str(err))
-
+        self.__datastmts[line_number] = tokenlist
 
     def getTokens(self,line_number):
         return self.__datastmts.get(line_number)
 
     def readData(self,read_line_number):
-
         if len(self.__datastmts) == 0:
             raise RuntimeError('No DATA statements available to READ ' +
                                'in line ' + str(read_line_number))
-
         data_values = []
-
         line_numbers = list(self.__datastmts.keys())
         line_numbers.sort()
-
         if self.__next_data == 0:
             self.__next_data = line_numbers[0]
         elif line_numbers.index(self.__next_data) < len(line_numbers)-1:
@@ -48,9 +37,7 @@ class BASICData:
         else:
             raise RuntimeError('No DATA statements available to READ ' +
                                'in line ' + str(read_line_number))
-
         tokenlist = self.__datastmts[self.__next_data]
-
         sign = 1
         for token in tokenlist[1:]:
             if token.category != Token.COMMA:
@@ -64,8 +51,6 @@ class BASICData:
                     sign = -1
             else:
                 sign = 1
-
-
         return data_values
 
     def restore(self,restoreLineNo):
@@ -84,10 +69,6 @@ class BASICData:
                     self.__next_data = 0
                 else:
                     self.__next_data = line_numbers[indexln-1]
-        else:
-            raise RuntimeError('Attempt to RESTORE but no DATA ' +
-                               'statement at line ' + str(restoreLineNo))
-
 
 class Program:
 
@@ -135,30 +116,6 @@ class Program:
             if int(line_number) >= start_line and int(line_number) <= end_line:
                 print(self.str_statement(line_number), end="")
 
-    def save(self, file):
-        if not file.lower().endswith(".bas"):
-            file += ".bas"
-        try:
-            with open(file, "w") as outfile:
-                outfile.write(str(self))
-        except OSError:
-            raise OSError("Could not save to file")
-
-    def load(self, file):
-        self.delete()
-        if not file.lower().endswith(".bas"):
-            file += ".bas"
-        try:
-            lexer = Lexer()
-            with open(file, "r") as infile:
-                for line in infile:
-                    line = line.replace("\r", "").replace("\n", "").strip()
-                    tokenlist = lexer.tokenize(line)
-                    self.add_stmt(tokenlist)
-
-        except OSError:
-            raise OSError("Could not read file")
-
     def add_stmt(self, tokenlist):
         try:
             line_number = int(tokenlist[0].lexeme)
@@ -192,13 +149,9 @@ class Program:
             raise RuntimeError(str(err))
 
     def execute(self):
-        """Execute the program"""
-
         self.__parser = BASICParser(self.__data)
         self.__data.restore(0)
-
         line_numbers = self.line_numbers()
-
         if len(line_numbers) > 0:
             index = 0
             self.set_next_line_number(line_numbers[index])
@@ -208,13 +161,7 @@ class Program:
 
                 if flowsignal:
                     if flowsignal.ftype == FlowSignal.SIMPLE_JUMP:
-                        try:
-                            index = line_numbers.index(flowsignal.ftarget)
-
-                        except ValueError:
-                            raise RuntimeError("Invalid line number supplied in GOTO or conditional branch: "
-                                               + str(flowsignal.ftarget))
-
+                        index = line_numbers.index(flowsignal.ftarget)
                         self.set_next_line_number(flowsignal.ftarget)
 
                     elif flowsignal.ftype == FlowSignal.GOSUB:
@@ -223,27 +170,13 @@ class Program:
 
                         else:
                             raise RuntimeError("GOSUB at end of program, nowhere to return")
-                        try:
-                            index = line_numbers.index(flowsignal.ftarget)
-
-                        except ValueError:
-                            raise RuntimeError("Invalid line number supplied in subroutine call: "
-                                               + str(flowsignal.ftarget))
+                        
+                        index = line_numbers.index(flowsignal.ftarget)
 
                         self.set_next_line_number(flowsignal.ftarget)
 
                     elif flowsignal.ftype == FlowSignal.RETURN:
-                        try:
-                            index = line_numbers.index(self.__return_stack.pop())
-
-                        except ValueError:
-                            raise RuntimeError("Invalid subroutine return in line " +
-                                               str(self.get_next_line_number()))
-
-                        except IndexError:
-                            raise RuntimeError("RETURN encountered without corresponding " +
-                                               "subroutine call in line " + str(self.get_next_line_number()))
-
+                        index = line_numbers.index(self.__return_stack.pop())
                         self.set_next_line_number(line_numbers[index])
 
                     elif flowsignal.ftype == FlowSignal.STOP:
@@ -255,10 +188,6 @@ class Program:
 
                         if index < len(line_numbers):
                             self.set_next_line_number(line_numbers[index])
-
-                        else:
-                            # Reached end of program
-                            raise RuntimeError("Program terminated within a loop")
 
                     elif flowsignal.ftype == FlowSignal.LOOP_SKIP:
                         index = index + 1
@@ -280,27 +209,14 @@ class Program:
                             break
 
                     elif flowsignal.ftype == FlowSignal.LOOP_REPEAT:
-                        try:
-                            index = line_numbers.index(self.__return_loop.pop(flowsignal.floop_var))
-
-                        except ValueError:
-                            raise RuntimeError("Invalid loop exit in line " +
-                                               str(self.get_next_line_number()))
-
-                        except KeyError:
-                            raise RuntimeError("NEXT encountered without corresponding " +
-                                               "FOR loop in line " + str(self.get_next_line_number()))
-
+                        index = line_numbers.index(self.__return_loop.pop(flowsignal.floop_var))
                         self.set_next_line_number(line_numbers[index])
 
                 else:
                     index = index + 1
-
                     if index < len(line_numbers):
                         self.set_next_line_number(line_numbers[index])
-
                     else:
-                        # Reached end of program
                         break
 
         else:
@@ -312,11 +228,7 @@ class Program:
 
     def delete_statement(self, line_number):
         self.__data.delData(line_number)
-        try:
-            del self.__program[line_number]
-
-        except KeyError:
-            raise KeyError("Line number does not exist")
+        del self.__program[line_number]
 
     def get_next_line_number(self):
         return self.__next_stmt
